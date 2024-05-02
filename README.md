@@ -13,7 +13,7 @@ You can aggregate average, min, max, and totals per minute, hour, day, month, an
 You can install the package via composer:
 
 ```bash
-composer require flowframe/laravel-trend
+composer require beranidigital/laravel-trend
 ```
 
 ## Usage
