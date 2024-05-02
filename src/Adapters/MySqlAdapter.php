@@ -15,7 +15,7 @@ class MySqlAdapter extends AbstractAdapter
             'week' => '%X-%V',
             'month' => '%Y-%m',
             'year' => '%Y',
-            default => throw new Error('Invalid interval.'),
+            default => throw new Error('Invalid interval: ' . $interval),
         };
 
         return "date_format({$column}, '{$format}')";

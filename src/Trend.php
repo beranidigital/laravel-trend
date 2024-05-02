@@ -2,6 +2,7 @@
 
 namespace Flowframe\Trend;
 
+use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
 use Error;
 use Flowframe\Trend\Adapters\MySqlAdapter;
@@ -15,13 +16,13 @@ class Trend
 {
     public string $interval;
 
-    public Carbon $start;
+    public ?CarbonInterface $start = null;
 
-    public Carbon $end;
+    public ?CarbonInterface $end = null;
 
     public string $dateColumn = 'created_at';
 
-    public string $dateAlias = 'date';
+    public string $dateAlias = 'date_formatted';
 
     public function __construct(public Builder $builder)
     {
@@ -37,7 +38,7 @@ class Trend
         return new static($model::query());
     }
 
-    public function between($start, $end): self
+    public function between(CarbonInterface $start, CarbonInterface $end): self
     {
         $this->start = $start;
         $this->end = $end;
@@ -104,7 +105,8 @@ class Trend
                 {$this->getSqlDate()} as {$this->dateAlias},
                 {$aggregate}({$column}) as aggregate
             ")
-            ->whereBetween($this->dateColumn, [$this->start, $this->end])
+            ->when($this->start, fn($query) => $query->where($this->dateColumn, '>=', $this->start))
+            ->when($this->end, fn($query) => $query->where($this->dateColumn, '<=', $this->end))
             ->groupBy($this->dateAlias)
             ->orderBy($this->dateAlias)
             ->get();
@@ -143,6 +145,15 @@ class Trend
             date: $value->{$this->dateAlias},
             aggregate: $value->aggregate,
         ));
+        if (!$this->start) {
+            // find the lowest date
+            $this->start = Carbon::parse($values->min('date'));
+        }
+        if (!$this->end) {
+            // find the highest date
+            $this->end = Carbon::parse($values->max('date'));
+        }
+
 
         $placeholders = $this->getDatePeriod()->map(
             fn (Carbon $date) => new TrendValue(
@@ -160,6 +171,7 @@ class Trend
 
     protected function getDatePeriod(): Collection
     {
+
         return collect(
             CarbonPeriod::between(
                 $this->start,
@@ -189,7 +201,7 @@ class Trend
             'week' => 'Y-W',
             'month' => 'Y-m',
             'year' => 'Y',
-            default => throw new Error('Invalid interval.'),
+            default => throw new Error('Invalid interval: ' . $this->interval),
         };
     }
 }
