@@ -110,7 +110,9 @@ class Trend
             ->groupBy($this->dateAlias)
             ->orderBy($this->dateAlias)
             ->get();
-
+        if (!$values->count()) {
+            return collect();
+        }
         return $this->mapValuesToDates($values);
     }
 
