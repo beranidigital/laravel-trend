@@ -145,13 +145,28 @@ class Trend
             date: $value->{$this->dateAlias},
             aggregate: $value->aggregate,
         ));
+        $dateFormat = $this->getCarbonDateFormat();
         if (!$this->start) {
             // find the lowest date
-            $this->start = Carbon::parse($values->min('date'));
+            $low = $values->min('date');
+            if ($this->interval == 'week') {
+                //2024-16
+                $this->start = new Carbon;
+                $this->start->setISODate(substr($low, 0, 4), substr($low, 5));
+            } else {
+                $this->start = Carbon::createFromFormat($dateFormat, $low);
+            }
         }
         if (!$this->end) {
             // find the highest date
-            $this->end = Carbon::parse($values->max('date'));
+            $high = $values->max('date');
+            if ($this->interval == 'week') {
+                //2024-16
+                $this->end = new Carbon;
+                $this->end->setISODate(substr($high, 0, 4), substr($high, 5));
+            } else {
+                $this->end = Carbon::createFromFormat($dateFormat, $high);
+            }
         }
 
 
