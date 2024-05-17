@@ -1,6 +1,6 @@
 {
     "name": "beranidigital/laravel-trend",
-    "description": "Easily generate model trends",
+    "description": "Easily generate model trends. Now with more intervals",
     "keywords": [
         "Flowframe",
         "laravel",
@@ -12,6 +12,11 @@
         {
             "name": "Lars Klopstra",
             "email": "lars@flowframe.nl",
+            "role": "Developer"
+        },
+        {
+            "name": "Yusuf Sekhan Althaf",
+            "email": "yusuf@beranidigital.id",
             "role": "Developer"
         }
     ],
