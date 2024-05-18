@@ -71,6 +71,7 @@ You can use the following aggregates intervals:
 -   `perMinute()`
 -   `perHour()`
 -   `perDay()`
+- `perWeek()`
 -   `perMonth()`
 -   `perYear()`
 
@@ -96,6 +97,23 @@ Trend::model(Order::class)
     ->between(...)
     ->perDay()
     ->count();
+```
+
+## Override Date Format
+
+By default, laravel-trend uses the `Y-m-d H:i:s` format for the date column. If you want to use a different format, you
+should specify it using the `Trend::$carbonFormats` property.
+
+Example:
+
+```php
+Flowframe\Trend\Trend::$carbonFormats['minute'] = 'Y-m-d H:i:00';
+Flowframe\Trend\Trend::$carbonFormats['hour'] = 'Y-m-d H:00:00';
+Flowframe\Trend\Trend::$carbonFormats['day'] = 'd-M-Y';
+Flowframe\Trend\Trend::$carbonFormats['week'] = 'W/Y';
+Flowframe\Trend\Trend::$carbonFormats['month'] = 'Y-m';
+Flowframe\Trend\Trend::$carbonFormats['year'] = 'Y';
+
 ```
 
 This allows you to work with models that have custom date column names or when you want to analyze data based on a different date column.

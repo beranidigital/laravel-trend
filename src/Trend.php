@@ -24,6 +24,15 @@ class Trend
 
     public string $dateAlias = 'date_formatted';
 
+    public static array $carbonFormats = [
+        'minute' => 'Y-m-d H:i:00',
+        'hour' => 'Y-m-d H:00',
+        'day' => 'Y-m-d',
+        'week' => 'Y-W',
+        'month' => 'Y-m',
+        'year' => 'Y',
+    ];
+
     public function __construct(public Builder $builder)
     {
     }
@@ -211,6 +220,9 @@ class Trend
 
     protected function getCarbonDateFormat(): string
     {
+        if (array_key_exists($this->interval, self::$carbonFormats)) {
+            return self::$carbonFormats[$this->interval];
+        }
         return match ($this->interval) {
             'minute' => 'Y-m-d H:i:00',
             'hour' => 'Y-m-d H:00',
