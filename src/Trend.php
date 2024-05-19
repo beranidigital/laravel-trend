@@ -156,7 +156,7 @@ class Trend
             date: $value->{$this->dateAlias},
             aggregate: $value->aggregate,
         ));
-        $dateFormat = $this->getCarbonDateFormat();
+        $dateFormat = $this->getDefaultCarbonDateFormat();
         if (!$this->start) {
             // find the lowest date
             $low = $values->min('date');
@@ -223,6 +223,11 @@ class Trend
         if (array_key_exists($this->interval, self::$carbonFormats)) {
             return self::$carbonFormats[$this->interval];
         }
+        return $this->getDefaultCarbonDateFormat();
+    }
+
+    protected function getDefaultCarbonDateFormat()
+    {
         return match ($this->interval) {
             'minute' => 'Y-m-d H:i:00',
             'hour' => 'Y-m-d H:00',
