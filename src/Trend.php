@@ -153,10 +153,10 @@ class Trend
     public function mapValuesToDates(Collection $values): Collection
     {
         $values = $values->map(fn ($value) => new TrendValue(
-            date: $value->{$this->dateAlias},
+            date: Carbon::parse($value->{$this->dateAlias})->format($this->getCarbonDateFormat()),
             aggregate: $value->aggregate,
         ));
-        $dateFormat = $this->getDefaultCarbonDateFormat();
+        $dateFormat = $this->getCarbonDateFormat();
         if (!$this->start) {
             // find the lowest date
             $low = $values->min('date');
@@ -187,7 +187,6 @@ class Trend
                 aggregate: 0,
             )
         );
-
         return $values
             ->merge($placeholders)
             ->unique('date')
