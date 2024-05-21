@@ -14,25 +14,6 @@ use Illuminate\Support\Collection;
 
 class Trend
 {
-    public string $interval;
-
-    public ?CarbonInterface $start = null;
-
-    public ?CarbonInterface $end = null;
-
-    public string $dateColumn = 'created_at';
-
-    public string $dateAlias = 'date_formatted';
-
-    public static array $carbonFormats = [
-        'minute' => 'Y-m-d H:i:00',
-        'hour' => 'Y-m-d H:00',
-        'day' => 'Y-m-d',
-        'week' => 'Y-W',
-        'month' => 'Y-m',
-        'year' => 'Y',
-    ];
-
     public const INTERVALS = [
         'minute',
         'hour',
@@ -41,14 +22,24 @@ class Trend
         'month',
         'year',
     ];
+    public static bool $ignoreLargeRanges = false;
+    public static int $maxRange = 10000;
+    public static array $carbonFormats = [
+        'minute' => 'Y-m-d H:i:00',
+        'hour' => 'Y-m-d H:00',
+        'day' => 'Y-m-d',
+        'week' => 'Y-W',
+        'month' => 'Y-m',
+        'year' => 'Y',
+    ];
+    public string $interval;
+    public ?CarbonInterface $start = null; // if false, it will throw an error if the range is too large
+    public ?CarbonInterface $end = null; // if the range is larger than this, it will throw an error
+    public string $dateColumn = 'created_at';
+    public string $dateAlias = 'date_formatted';
 
     public function __construct(public Builder $builder)
     {
-    }
-
-    public static function query(Builder $builder): self
-    {
-        return new static($builder);
     }
 
     public static function model(string $model): self
@@ -56,12 +47,14 @@ class Trend
         return new static($model::query());
     }
 
-    public function between(CarbonInterface $start, CarbonInterface $end): self
+    public static function query(Builder $builder): self
     {
-        $this->start = $start;
-        $this->end = $end;
+        return new static($builder);
+    }
 
-        return $this;
+    public function perMinute(): self
+    {
+        return $this->interval('minute');
     }
 
     public function interval(string $interval): self
@@ -69,11 +62,6 @@ class Trend
         $this->interval = $interval;
 
         return $this;
-    }
-
-    public function perMinute(): self
-    {
-        return $this->interval('minute');
     }
 
     public function perHour(): self
@@ -115,8 +103,47 @@ class Trend
         return $this;
     }
 
+    public function figureOutRangeAutomatically(): void
+    {
+        $this->start = Carbon::parse($this->builder->min($this->dateColumn));
+        $this->end = Carbon::parse($this->builder->max($this->dateColumn));
+        $maximum = null;
+        switch ($this->interval) {
+            case 'minute':
+                $maximum = $this->start->copy()->addHour();
+                break;
+            case 'hour':
+                $maximum = $this->start->copy()->addDay();
+                break;
+            case 'day':
+                $maximum = $this->start->copy()->addMonths(3);
+                break;
+            case 'week':
+            case 'month':
+                $maximum = $this->start->copy()->addYears(1);
+                break;
+            case 'year':
+                $maximum = $this->start->copy()->addYears(15);
+                break;
+            default:
+                throw new Error('Invalid interval: ' . $this->interval);
+        }
+
+        // whichever is lower
+        $this->end = $this->end->min($maximum);
+
+    }
+
+    public function min(string $column): Collection
+    {
+        return $this->aggregate($column, 'min');
+    }
+
     public function aggregate(string $column, string $aggregate): Collection
     {
+        if (!$this->start || !$this->end) {
+            $this->figureOutRangeAutomatically();
+        }
         $values = $this->builder
             ->toBase()
             ->selectRaw("
@@ -134,97 +161,6 @@ class Trend
         return $this->mapValuesToDates($values);
     }
 
-    public function average(string $column): Collection
-    {
-        return $this->aggregate($column, 'avg');
-    }
-
-    public function min(string $column): Collection
-    {
-        return $this->aggregate($column, 'min');
-    }
-
-    public function max(string $column): Collection
-    {
-        return $this->aggregate($column, 'max');
-    }
-
-    public function sum(string $column): Collection
-    {
-        return $this->aggregate($column, 'sum');
-    }
-
-    public function count(string $column = '*'): Collection
-    {
-        return $this->aggregate($column, 'count');
-    }
-
-    public function mapValuesToDates(Collection $values): Collection
-    {
-
-        $values = $values->map(fn ($value) => new TrendValue(
-            date: $value->{$this->dateAlias},
-            aggregate: $value->aggregate,
-        ));
-
-        $dateFormat = $this->getDefaultCarbonDateFormat();
-        if (!$this->start) {
-            // find the lowest date
-            $low = $values->min('date');
-            if ($this->interval == 'week') {
-                //2024-16
-                $this->start = new Carbon;
-                $this->start->setISODate(substr($low, 0, 4), substr($low, 5));
-            } else {
-                $this->start = Carbon::createFromFormat($dateFormat, $low);
-            }
-        }
-        if (!$this->end) {
-            // find the highest date
-            $high = $values->max('date');
-            if ($this->interval == 'week') {
-                //2024-16
-                $this->end = new Carbon;
-                $this->end->setISODate(substr($high, 0, 4), substr($high, 5));
-            } else {
-                $this->end = Carbon::createFromFormat($dateFormat, $high);
-            }
-        }
-
-
-        $placeholders = $this->getDatePeriod()->map(
-            fn (Carbon $date) => new TrendValue(
-                date: $date->format($this->getDefaultCarbonDateFormat()),
-                aggregate: 0,
-            )
-        );
-
-        $val = $values
-            ->merge($placeholders)
-            ->unique('date')
-            ->sort() // only support defaultCarbonDateFormat
-            ->flatten()
-            ->map(function ($value) {
-                return new TrendValue(
-                    date: Carbon::parse($value->date)->format($this->getCarbonDateFormat()),
-                    aggregate: $value->aggregate,
-                );
-            });
-
-        return $val;
-    }
-
-    protected function getDatePeriod(): Collection
-    {
-
-        return collect(
-            CarbonPeriod::between(
-                $this->start,
-                $this->end,
-            )->interval("1 {$this->interval}")
-        );
-    }
-
     protected function getSqlDate(): string
     {
         $adapter = match ($this->builder->getConnection()->getDriverName()) {
@@ -237,12 +173,89 @@ class Trend
         return $adapter->format($this->dateColumn, $this->interval);
     }
 
-    protected function getCarbonDateFormat(): string
+    public function count(string $column = '*'): Collection
     {
-        if (array_key_exists($this->interval, self::$carbonFormats)) {
-            return self::$carbonFormats[$this->interval];
+        return $this->aggregate($column, 'count');
+    }
+
+    public function parseToCarbon($date): Carbon
+    {
+        if ($date instanceof Carbon) {
+            return $date;
         }
-        return $this->getDefaultCarbonDateFormat();
+        if (is_string($date)) {
+            if ($this->interval === 'week') {
+                $split = explode('-', $date);
+                $year = $split[0];
+                $week = $split[1];
+                return Carbon::now()->setISODate($year, $week);
+            }
+            return Carbon::parse($date);
+        }
+        if (is_int($date)) {
+            return Carbon::createFromTimestamp($date);
+        }
+        throw new Error('Could not parse date to Carbon: ' . $date);
+    }
+
+    public function mapValuesToDates(Collection $values): Collection
+    {
+
+        $values = $values->map(fn($value) => new TrendValue(
+            date: $value->{$this->dateAlias},
+            aggregate: $value->aggregate,
+        ));
+
+        $dateFormat = $this->getDefaultCarbonDateFormat();
+
+        if (!$this->start || !$this->end) {
+            throw new Error('Could not determine start and end dates.');
+        }
+        $howMany = 0;
+        switch ($this->interval) {
+            case 'minute':
+                $howMany = $this->start->diffInMinutes($this->end);
+                break;
+            case 'hour':
+                $howMany = $this->start->diffInHours($this->end);
+                break;
+            case 'day':
+                $howMany = $this->start->diffInDays($this->end);
+                break;
+            case 'week':
+                $howMany = $this->start->diffInWeeks($this->end);
+                break;
+            case 'month':
+                $howMany = $this->start->diffInMonths($this->end);
+                break;
+            case 'year':
+                $howMany = $this->start->diffInYears($this->end);
+                break;
+        }
+        if ($howMany > self::$maxRange && !self::$ignoreLargeRanges) {
+            throw new Error('The interval and range is too large. Please narrow it down to prevent stalled execution: ' . $howMany . '/' . self::$maxRange);
+        }
+
+        $placeholders = $this->getDatePeriod()->map(
+            fn(Carbon $date) => new TrendValue(
+                date: $date->format($this->getDefaultCarbonDateFormat()),
+                aggregate: 0,
+            )
+        );
+
+        $val = $values
+            ->merge($placeholders)
+            ->unique('date')
+            ->sort() // only support defaultCarbonDateFormat
+            ->flatten()
+            ->map(function (TrendValue $value) {
+                return new TrendValue(
+                    date: self::parseToCarbon($value->date)->format($this->getCarbonDateFormat()),
+                    aggregate: $value->aggregate,
+                );
+            });
+
+        return $val;
     }
 
     protected function getDefaultCarbonDateFormat()
@@ -256,5 +269,47 @@ class Trend
             'year' => 'Y',
             default => throw new Error('Invalid interval: ' . $this->interval),
         };
+    }
+
+    protected function getDatePeriod(): Collection
+    {
+
+        return collect(
+            CarbonPeriod::between(
+                $this->start,
+                $this->end,
+            )->interval("1 {$this->interval}")
+        );
+    }
+
+    public function between(CarbonInterface $start, CarbonInterface $end): self
+    {
+        $this->start = $start;
+        $this->end = $end;
+
+        return $this;
+    }
+
+    protected function getCarbonDateFormat(): string
+    {
+        if (array_key_exists($this->interval, self::$carbonFormats)) {
+            return self::$carbonFormats[$this->interval];
+        }
+        return $this->getDefaultCarbonDateFormat();
+    }
+
+    public function max(string $column): Collection
+    {
+        return $this->aggregate($column, 'max');
+    }
+
+    public function average(string $column): Collection
+    {
+        return $this->aggregate($column, 'avg');
+    }
+
+    public function sum(string $column): Collection
+    {
+        return $this->aggregate($column, 'sum');
     }
 }

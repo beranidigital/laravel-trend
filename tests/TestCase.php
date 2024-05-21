@@ -11,10 +11,13 @@ class TestCase extends Orchestra
     protected function setUp(): void
     {
         parent::setUp();
+        $this->loadMigrationsFrom(__DIR__ . 'test/database/migrations');
+
 
         Factory::guessFactoryNamesUsing(
             fn (string $modelName) => 'Flowframe\\Trend\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
+        \Flowframe\Trend\Tests\Models\SimpleModel::factory()->count(1000)->create();
     }
 
     protected function getPackageProviders($app)
@@ -28,9 +31,10 @@ class TestCase extends Orchestra
     {
         config()->set('database.default', 'testing');
 
-        /*
-        $migration = include __DIR__.'/../database/migrations/create_laravel-trend_table.php.stub';
+
+        $migration = include __DIR__ . '/database/migrations/create_simple_table.php';
         $migration->up();
-        */
+
+
     }
 }
