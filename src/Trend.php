@@ -33,6 +33,15 @@ class Trend
         'year' => 'Y',
     ];
 
+    public const INTERVALS = [
+        'minute',
+        'hour',
+        'day',
+        'week',
+        'month',
+        'year',
+    ];
+
     public function __construct(public Builder $builder)
     {
     }
@@ -154,7 +163,7 @@ class Trend
     {
 
         $values = $values->map(fn ($value) => new TrendValue(
-            date: Carbon::parse($value->{$this->dateAlias})->format($this->getDefaultCarbonDateFormat()),
+            date: $value->{$this->dateAlias},
             aggregate: $value->aggregate,
         ));
 

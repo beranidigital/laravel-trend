@@ -26,6 +26,7 @@
         "illuminate/contracts": "^8.37|^9|^10.0|^11.0"
     },
     "require-dev": {
+        "fakerphp/faker": "^1.23",
         "nunomaduro/collision": "^5.3|^6.1|^8.0",
         "orchestra/testbench": "^6.15|^7.0|^8.0|^9.0",
         "pestphp/pest": "^1.18|^2.34",
@@ -49,7 +50,10 @@
         "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
     },
     "extra": {
         "laravel": {

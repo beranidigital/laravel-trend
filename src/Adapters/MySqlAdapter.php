@@ -6,6 +6,7 @@ use Error;
 
 class MySqlAdapter extends AbstractAdapter
 {
+
     public function format(string $column, string $interval): string
     {
         $format = match ($interval) {
