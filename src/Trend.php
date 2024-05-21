@@ -184,7 +184,7 @@ class Trend
         return $this->aggregate($column, 'count');
     }
 
-    public function parseToCarbon($date): Carbon
+    protected function parseToCarbon($date): Carbon
     {
         if ($date instanceof Carbon) {
             return $date;

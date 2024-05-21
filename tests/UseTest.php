@@ -39,8 +39,12 @@ it('test intervals with custom date format', function () {
         $format = implode('', $charArray);
         \Flowframe\Trend\Trend::$carbonFormats[$interval] = $format; //walla
     }
-    $trend = MockedTrend::query(\Flowframe\Trend\Tests\Models\SimpleModel::query());
-    $trend->interval = 'minute';
-    $result = $trend->count();
-    expect($result->count())->toBeGreaterThan(0);
+    foreach (\Flowframe\Trend\Trend::INTERVALS as $interval) {
+        $trend = \Flowframe\Trend\Trend::query(\Flowframe\Trend\Tests\Models\SimpleModel::query());
+        $trend->interval = $interval;
+        $result = $trend->count();
+        expect($result->count())->toBeGreaterThan(0);
+        $first = $result->first();
+
+    }
 });
