@@ -2,7 +2,6 @@
 
 use Flowframe\Trend\Tests\MockedTrend;
 
-
 it('can test', function () {
     expect(true)->toBeTrue();
 });

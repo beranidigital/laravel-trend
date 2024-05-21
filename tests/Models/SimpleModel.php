@@ -21,6 +21,7 @@ class SimpleModel extends \Illuminate\Database\Eloquent\Model
                 'updated_at' => fake()->dateTimeThisYear->format('Y-m-d H:i:s'),
             ];
         }
+
         return $data;
     }
 

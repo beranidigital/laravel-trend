@@ -9,7 +9,6 @@ use Illuminate\Support\Collection;
 
 class MockedTrend extends Trend
 {
-
     public ?Collection $values = null;
 
     public function figureOutRangeAutomatically(): void
@@ -20,19 +19,24 @@ class MockedTrend extends Trend
         switch ($this->interval) {
             case 'minute':
                 $maximum = $this->start->copy()->addHour();
+
                 break;
             case 'hour':
                 $maximum = $this->start->copy()->addDay();
+
                 break;
             case 'day':
                 $maximum = $this->start->copy()->addMonths(3);
+
                 break;
             case 'week':
             case 'month':
                 $maximum = $this->start->copy()->addYears(1);
+
                 break;
             case 'year':
                 $maximum = $this->start->copy()->addYears(15);
+
                 break;
             default:
                 throw new Error('Invalid interval: ' . $this->interval);
@@ -44,11 +48,11 @@ class MockedTrend extends Trend
 
     public function aggregate(string $column, string $aggregate): Collection
     {
-        if (!$this->start || !$this->end) {
+        if (! $this->start || ! $this->end) {
             $this->figureOutRangeAutomatically();
         }
         $values = $this->values;
-        if (!$values) { //fake data
+        if (! $values) { //fake data
 
             $values = collect();
             $date = $this->start->copy();
@@ -64,9 +68,10 @@ class MockedTrend extends Trend
             }
         }
 
-        if (!$values->count()) {
+        if (! $values->count()) {
             return collect();
         }
+
         return $this->mapValuesToDates($values);
     }
 }
