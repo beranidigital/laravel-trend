@@ -42,6 +42,9 @@ $trend = Trend::query(User::where('name', 'like', 'a%'))
     ->average('weight');
 ```
 
+If you don't specify a date range, the package will automatically determine the range based on the interval you've
+chosen.
+
 ## Starting a trend
 
 You must either start a trend using `::model()` or `::query()`. The difference between the two is that using `::query()` allows you to add additional filters, just like you're used to using eloquent. Using `::model()` will just consume it as it is.
