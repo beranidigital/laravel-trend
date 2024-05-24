@@ -156,7 +156,7 @@ class Trend
                 {$aggregate}({$column}) as aggregate
             ")
             ->when($this->start, fn ($query) => $query->where($this->dateColumn, '>=', $this->start))
-            ->when($this->end, fn($query) => $query->where($this->dateColumn, '<=', $this->end->copy()->addDay()))
+            ->when($this->end, fn ($query) => $query->where($this->dateColumn, '<=', $this->end->copy()->addDay()))
             ->groupBy($this->dateAlias)
             ->orderBy($this->dateAlias)
             ->get();
